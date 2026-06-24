@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Brickon</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --surface2:  #1e2333;
+      --border:    #2a2f3e;
+      --accent:    #e05c2a;
+      --text:      #edeae4;
+      --muted:     #7a7f91;
+      --admin:     #c084fc;
+      --editor:    #34d399;
+      --viewer:    #60a5fa;
+      --radius:    10px;
+      --font:      'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .logo-name { font-weight: 600; font-size: 16px; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .role-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .role-badge.admin  { background: #2d1f47; color: var(--admin);  }
+    .role-badge.editor { background: #103028; color: var(--editor); }
+    .role-badge.viewer { background: #0f2040; color: var(--viewer); }
+
+    .user-email { font-size: 13px; color: var(--muted); }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-logout:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── CONTENIDO PRINCIPAL ── */
+    main { padding: 40px 32px; max-width: 960px; }
+
+    .greeting {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      margin-bottom: 6px;
+    }
+
+    .greeting-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 36px;
+    }
+
+    /* ── SECCIÓN POR ROL ── */
+    .section {
+      display: none;
+    }
+
+    .section.active { display: block; }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-icon.purple { background: #2d1f47; }
+    .card-icon.green  { background: #103028; }
+    .card-icon.blue   { background: #0f2040; }
+    .card-icon.orange { background: #2a1a10; }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── TABLA DE USUARIOS (solo admin) ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-header span { font-size: 14px; font-weight: 600; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 20px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    /* ── NOTICE ── */
+    .notice {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* ── LOADING ── */
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Pantalla de carga -->
+<div id="loading">
+  <span class="spinner"></span> Verificando sesión...
+</div>
+
+<!-- Contenido real (oculto hasta verificar sesión) -->
+<div id="app" style="display:none">
+
+  <nav>
+    <div class="logo">
+      <div class="logo-mark">B</div>
+      <span class="logo-name">Brickon</span>
+    </div>
+    <div class="nav-right">
+      <span class="user-email" id="nav-email"></span>
+      <span class="role-badge" id="nav-role"></span>
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </nav>
+
+  <main>
+    <p class="greeting">Hola, <span id="user-name">usuario</span> 👋</p>
+    <p class="greeting-sub" id="greeting-sub">Bienvenido al panel de Brickon.</p>
+
+    <!-- ══ VISTA: ADMIN ══ -->
+    <div class="section" id="view-admin">
+      <p class="notice">
+        Estás accediendo como <strong>Administrador</strong>. Tienes acceso completo al sistema.
+      </p>
+
+      <p class="section-title">Gestión del sistema</p>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon purple">👥</div>
+          <h3>Usuarios</h3>
+          <p>Crea, edita y asigna roles a los miembros del equipo desde el panel de Supabase.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon orange">⚙️</div>
+          <h3>Configuración</h3>
+          <p>Ajusta parámetros generales del sistema y permisos por sección.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon green">📊</div>
+          <h3>Reportes</h3>
+          <p>Accede a métricas de uso, sesiones activas y actividad del equipo.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon blue">🗂️</div>
+          <h3>Contenido</h3>
+          <p>Gestiona y publica todo el contenido del portal interno.</p>
+        </div>
+      </div>
+
+      <p class="section-title">Usuarios registrados</p>
+      <div class="table-wrap">
+        <div class="table-header">
+          <span>Lista de usuarios</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="users-table">
+            <tr><td colspan="3" style="color:var(--muted);text-align:center;padding:24px">
+              Conecta tu Supabase para ver los usuarios reales
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══ VISTA: EDITOR ══ -->
+    <div class="section" id="view-editor">
+      <p class="notice">
+        Estás accediendo como <strong>Editor</strong>. Puedes crear y modificar contenido.
+      </p>
+
+      <p class="section-title">Herramientas de edición</p>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon green">✏️</div>
+          <h3>Nuevo contenido</h3>
+          <p>Crea entradas, documentos o recursos para el portal interno.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon blue">📁</div>
+          <h3>Mis publicaciones</h3>
+          <p>Revisa y edita el contenido que has creado.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon orange">📋</div>
+          <h3>Borradores</h3>
+          <p>Contenido guardado pendiente de publicar o revisar.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VISTA: VIEWER ══ -->
+    <div class="section" id="view-viewer">
+      <p class="notice">
+        Estás accediendo como <strong>Visitante</strong>. Puedes consultar el contenido disponible.
+      </p>
+
+      <p class="section-title">Contenido disponible</p>
+      <div class="cards-grid">
+        <div class="card">
+          <div class="card-icon blue">📖</div>
+          <h3>Documentación</h3>
+          <p>Consulta manuales, procedimientos y recursos del equipo.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon green">📢</div>
+          <h3>Anuncios</h3>
+          <p>Noticias y comunicados internos de la empresa.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  async function init() {
+    const { data: { session } } = await client.auth.getSession();
+
+    // Sin sesión → regresar al login
+    if (!session) {
+      window.location.href = "index.html";
+      return;
+    }
+
+    const user = session.user;
+
+    // Leer el rol desde user_metadata (se define en Supabase al crear el usuario)
+    // O desde app_metadata si prefieres asignarlo desde el backend
+    const role  = user.user_metadata?.role || "viewer";
+    const email = user.email;
+    const name  = user.user_metadata?.name || email.split("@")[0];
+
+    // Actualizar navbar
+    document.getElementById("nav-email").textContent = email;
+    const roleBadge = document.getElementById("nav-role");
+    roleBadge.textContent = ROLES[role] ?? role;
+    roleBadge.className   = `role-badge ${role}`;
+
+    // Saludo
+    document.getElementById("user-name").textContent = name;
+    document.getElementById("greeting-sub").textContent =
+      `Accediste como ${ROLES[role] ?? role}. ${getRoleMessage(role)}`;
+
+    // Mostrar sección correspondiente
+    const viewMap = { admin: "view-admin", editor: "view-editor", viewer: "view-viewer" };
+    const viewId  = viewMap[role] ?? "view-viewer";
+    document.getElementById(viewId)?.classList.add("active");
+
+    // Mostrar la app
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }
+
+  function getRoleMessage(role) {
+    const msgs = {
+      admin:  "Tienes acceso completo al sistema.",
+      editor: "Puedes crear y modificar contenido.",
+      viewer: "Puedes consultar el contenido disponible.",
+    };
+    return msgs[role] ?? "";
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    window.location.href = "index.html";
+  }
+
+  init();
+</script>
+
+</body>
+</html>
